@@ -6,7 +6,7 @@ FLAGS = -D _DEBUG -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ -Waggressive-loop
 all: $(TARGET)
 prog: main.cpp
 	@echo ----------------------------------------------------------------------------------
-	g++ $(FLAGS) -lraylib  main.cpp -o prog
+	g++ -O3 -lraylib  main.cpp -o prog
 	@echo ----------------------------------------------------------------------------------
 
 clean:

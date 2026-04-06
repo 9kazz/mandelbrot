@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "raylib.h"
 
@@ -25,6 +26,9 @@ int main()
     int N = 0;
     const int   Nmax  = 255;
     const float R2max = 2*2;
+
+    #define FRAME_STR_SIZE  15
+    char frame_str[FRAME_STR_SIZE] = {0};
 
     InitWindow(width, height, "The Mandelbrot Set");
 
@@ -53,6 +57,8 @@ int main()
         int xPix = 0;
         int yPix = 0;
 
+        double time_start = GetTime();
+
         for (yPix = 0;  yPix < height;  yPix++, y0 += dy)
         {
             for (xPix = 0, x0 = x0ref;  xPix < width;  xPix++, x0 += dx)
@@ -69,7 +75,7 @@ int main()
 
                     if (R2 > R2max) 
                     {
-                        Pixels_buf[yPix * width + xPix] = BLACK;
+                        Pixels_buf[yPix * width + xPix] = {N, N, N, 255};
                         break;
                     }
                 
@@ -79,15 +85,28 @@ int main()
 
                 if (N > Nmax)
                     Pixels_buf[yPix * width + xPix] = WHITE;
-
             }
         }
 
+        double time_end = GetTime();
+
         UpdateTexture(MandelTexture, Pixels_buf);
         
+        int frame_rate = round( 1 / (time_end - time_start) );
+
         BeginDrawing();
+
             ClearBackground(WHITE);
             DrawTexture(MandelTexture, 0, 0, WHITE);
+
+            snprintf(frame_str, FRAME_STR_SIZE, "Frame rate: %d", frame_rate);
+          
+            int text_width  = 270;
+            int text_height = 30;
+
+            DrawRectangle(width - text_width, 0, text_width, 2 * text_height, BLUE);
+            DrawText(frame_str, width - text_width + text_height, text_height / 3, text_height, BLACK);
+            
         EndDrawing();
     }
 
