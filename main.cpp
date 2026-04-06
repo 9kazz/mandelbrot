@@ -3,25 +3,28 @@
 
 #include "raylib.h"
 
+#define XMAXREF  (float) 3
+#define YMAXREF  (float) 3
+
 int main()
 {
     const int width  = 1500;
     const int height = 1500;
+    
+    float xMax  = XMAXREF;
+    float yMax  = YMAXREF;
 
-    const float xmax = 3;
-    const float ymax = 3;
+    float x0ref = -xMax / 2;
+    float y0ref = -yMax / 2;
 
-    const float dx = xmax / width;
-    const float dy = ymax / height;
-
+    const float xZoom  = XMAXREF/20;
+    const float yZoom  = YMAXREF/20;
+    const float xShift = XMAXREF/100;
+    const float yShift = YMAXREF/100;
+    
+    int N = 0;
     const int   Nmax  = 255;
     const float R2max = 2*2;
-
-    float x0 = 0;
-    float y0 = 0;
-
-    int xPix = 0;
-    int yPix = 0;
 
     InitWindow(width, height, "The Mandelbrot Set");
 
@@ -33,14 +36,31 @@ int main()
 
     while (!WindowShouldClose()) 
     {
-        for (yPix = 0, y0 = -ymax/2;  yPix < height;  yPix++, y0 += dy)
+        if(IsKeyDown(KEY_P))  { xMax -= xZoom;  yMax -= yZoom;  x0ref += xZoom / 2;  y0ref += yZoom / 2; }
+        if(IsKeyDown(KEY_M))  { xMax += xZoom;  yMax += yZoom;  x0ref -= xZoom / 2;  y0ref -= yZoom / 2; }
+
+        const float dx = xMax / width;
+        const float dy = yMax / height;
+            
+        if(IsKeyDown(KEY_LEFT))   x0ref += xShift;
+        if(IsKeyDown(KEY_RIGHT))  x0ref -= xShift;
+        if(IsKeyDown(KEY_UP))     y0ref += yShift;
+        if(IsKeyDown(KEY_DOWN))   y0ref -= yShift;
+        
+        float x0 = x0ref;
+        float y0 = y0ref;
+
+        int xPix = 0;
+        int yPix = 0;
+
+        for (yPix = 0;  yPix < height;  yPix++, y0 += dy)
         {
-            for (xPix = 0, x0 = -xmax/2;  xPix < width;  xPix++, x0 += dx)
+            for (xPix = 0, x0 = x0ref;  xPix < width;  xPix++, x0 += dx)
             {
                 float x = 0;
                 float y = 0;        
 
-                for (int N = 0; N <= Nmax; N++)
+                for (N = 0; N <= Nmax; N++)
                 {
                     float y2 = y*y;
                     float x2 = x*x;
@@ -56,6 +76,10 @@ int main()
                     x = x2 - y2 + x0;
                     y = 2*xy + y0;
                 }
+
+                if (N > Nmax)
+                    Pixels_buf[yPix * width + xPix] = WHITE;
+
             }
         }
 
