@@ -5,7 +5,7 @@
 
 #include "raylib.h"
 
-#define SIMD_GROUP  4
+#define SIMD_GROUP  8
 
 enum EndStatus 
 {
@@ -18,8 +18,8 @@ int MandelCalculate (int width, int height, Color* Pixels_buf, Texture2D* Mandel
 
 int main()
 {
-    const int width  = 1500;
-    const int height = 1500;
+    const int width  = 1600;
+    const int height = 1600;
     
     InitWindow(width, height, "The Mandelbrot Set");
 
@@ -65,10 +65,10 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
         const float dx = xMax / width;
         const float dy = yMax / height;
             
-        if(IsKeyDown(KEY_LEFT))   x0ref += xShift;
-        if(IsKeyDown(KEY_RIGHT))  x0ref -= xShift;
-        if(IsKeyDown(KEY_UP))     y0ref += yShift;
-        if(IsKeyDown(KEY_DOWN))   y0ref -= yShift;
+        if(IsKeyDown(KEY_LEFT))   x0ref -= xShift;
+        if(IsKeyDown(KEY_RIGHT))  x0ref += xShift;
+        if(IsKeyDown(KEY_UP))     y0ref -= yShift;
+        if(IsKeyDown(KEY_DOWN))   y0ref += yShift;
         
         float x0 = x0ref;
         float y0 = y0ref;
@@ -86,14 +86,14 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                 float Y[SIMD_GROUP] = {0};   
 
                 int    N[SIMD_GROUP] = {0};     
-                int Nres[SIMD_GROUP] = {-1, -1, -1, -1};
+                int Nres[SIMD_GROUP] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
                 float Y2[SIMD_GROUP] = {0};  
                 float X2[SIMD_GROUP] = {0};  
                 float XY[SIMD_GROUP] = {0};  
                 float R2[SIMD_GROUP] = {0};  
 
-                for (int DotEscapeMask = 0; DotEscapeMask != 0b1111; )
+                for (int DotEscapeMask = 0; DotEscapeMask != 0b11111111; )
                 {
                     for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { Y2[data_cnt] =  Y[data_cnt] *  Y[data_cnt]; }
                     for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { X2[data_cnt] =  X[data_cnt] *  X[data_cnt]; }
