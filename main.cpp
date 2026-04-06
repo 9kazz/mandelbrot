@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <emmintrin.h>
 
 #include "raylib.h"
+
+#define SIMD_GROUP  4
 
 enum EndStatus 
 {
@@ -22,7 +25,7 @@ int main()
 
     Image     MandelImg     = GenImageColor(width, height, WHITE);
     Texture2D MandelTexture = LoadTextureFromImage(MandelImg);
-    Color*    Pixels_buf    = (Color*) calloc(width * height, sizeof(Color));
+    Color*    Pixels_buf    = (Color*) calloc(width * height, sizeof(Color));   // WIDTH * HEIGHT + SIMD_GROUP
 
     MandelCalculate(width, height, Pixels_buf, &MandelTexture);
 
@@ -51,7 +54,6 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
     const float xShift = xMaxRef / 100;
     const float yShift = yMaxRef / 100;
 
-    int N = 0;
     const int   Nmax  = 255;
     const float R2max = 2*2;
 
@@ -78,30 +80,37 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
         for (yPix = 0;  yPix < height;  yPix++, y0 += dy)
         {
-            for (xPix = 0, x0 = x0ref;  xPix < width;  xPix++, x0 += dx)
-            {
-                float x = 0;
-                float y = 0;        
+            for (xPix = 0, x0 = x0ref;  xPix < width;  xPix += SIMD_GROUP, x0 += SIMD_GROUP * dx)
+            {                   
+                float X[SIMD_GROUP] = {0};
+                float Y[SIMD_GROUP] = {0};   
 
-                for (N = 0; N <= Nmax; N++)
+                int    N[SIMD_GROUP] = {0};     
+                int Nres[SIMD_GROUP] = {-1, -1, -1, -1};
+
+                float Y2[SIMD_GROUP] = {0};  
+                float X2[SIMD_GROUP] = {0};  
+                float XY[SIMD_GROUP] = {0};  
+                float R2[SIMD_GROUP] = {0};  
+
+                for (int DotEscapeMask = 0; DotEscapeMask != 0b1111; )
                 {
-                    float y2 = y*y;
-                    float x2 = x*x;
-                    float xy = x*y;
-                    float R2 = x2 + y2;
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { Y2[data_cnt] =  Y[data_cnt] *  Y[data_cnt]; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { X2[data_cnt] =  X[data_cnt] *  X[data_cnt]; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { XY[data_cnt] =  X[data_cnt] *  Y[data_cnt]; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { R2[data_cnt] = X2[data_cnt] + Y2[data_cnt]; }
 
-                    if (R2 > R2max) 
-                    {
-                        Pixels_buf[yPix * width + xPix] = {N, N, N, 255};
-                        break;
-                    }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { if (R2[data_cnt] > R2max && Nres[data_cnt] == -1)  Nres[data_cnt] = N[data_cnt]; }
                 
-                    x = x2 - y2 + x0;
-                    y = 2*xy + y0;
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { X[data_cnt] = X2[data_cnt] - Y2[data_cnt] + x0 + dx * data_cnt; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { Y[data_cnt] = 2 * XY[data_cnt] + y0 + dy * data_cnt; }
+
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { N[data_cnt]++ ; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { if (N[data_cnt] >= Nmax && Nres[data_cnt] == -1)  Nres[data_cnt] = Nmax; }
+                    for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { if (Nres[data_cnt] != -1)  DotEscapeMask |= (1 << data_cnt); }
                 }
 
-                if (N > Nmax)
-                    Pixels_buf[yPix * width + xPix] = WHITE;
+                for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { Pixels_buf[yPix * width + xPix + data_cnt] = {Nres[data_cnt], Nres[data_cnt], Nres[data_cnt], 255}; }
             }
         }
 
