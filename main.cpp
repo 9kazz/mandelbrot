@@ -4,39 +4,56 @@
 
 #include "raylib.h"
 
-#define XMAXREF  (float) 3
-#define YMAXREF  (float) 3
+enum EndStatus 
+{
+    Success_end = 1,
+    Failure_end = 0
+};
+
+int MandelDraw      (int width, Texture2D* MandelTexture, int frame_rate);
+int MandelCalculate (int width, int height, Color* Pixels_buf, Texture2D* MandelTexture);
 
 int main()
 {
     const int width  = 1500;
     const int height = 1500;
     
-    float xMax  = XMAXREF;
-    float yMax  = YMAXREF;
+    InitWindow(width, height, "The Mandelbrot Set");
+
+    Image     MandelImg     = GenImageColor(width, height, WHITE);
+    Texture2D MandelTexture = LoadTextureFromImage(MandelImg);
+    Color*    Pixels_buf    = (Color*) calloc(width * height, sizeof(Color));
+
+    MandelCalculate(width, height, Pixels_buf, &MandelTexture);
+
+    UnloadImage(MandelImg);
+    UnloadTexture(MandelTexture);
+    free(Pixels_buf);
+
+    CloseWindow();
+
+    return 0;   
+}
+
+int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelTexture) 
+{        
+    const float xMaxRef = 3;
+    const float yMaxRef = 3;
+
+    float xMax  = xMaxRef;
+    float yMax  = yMaxRef;
 
     float x0ref = -xMax / 2;
     float y0ref = -yMax / 2;
 
-    const float xZoom  = XMAXREF/20;
-    const float yZoom  = YMAXREF/20;
-    const float xShift = XMAXREF/100;
-    const float yShift = YMAXREF/100;
-    
+    const float xZoom  = xMaxRef / 20;
+    const float yZoom  = yMaxRef / 20;
+    const float xShift = xMaxRef / 100;
+    const float yShift = yMaxRef / 100;
+
     int N = 0;
     const int   Nmax  = 255;
     const float R2max = 2*2;
-
-    #define FRAME_STR_SIZE  15
-    char frame_str[FRAME_STR_SIZE] = {0};
-
-    InitWindow(width, height, "The Mandelbrot Set");
-
-    Image MandelImg = GenImageColor(width, height, WHITE);
-
-    Texture2D MandelTexture = LoadTextureFromImage(MandelImg);
-
-    Color* Pixels_buf = (Color*) calloc(width * height, sizeof(Color));
 
     while (!WindowShouldClose()) 
     {
@@ -88,33 +105,36 @@ int main()
             }
         }
 
-        double time_end = GetTime();
+        double time_end   = GetTime();
+        int    frame_rate = round( 1 / (time_end - time_start) );
 
-        UpdateTexture(MandelTexture, Pixels_buf);
-        
-        int frame_rate = round( 1 / (time_end - time_start) );
-
-        BeginDrawing();
-
-            ClearBackground(WHITE);
-            DrawTexture(MandelTexture, 0, 0, WHITE);
-
-            snprintf(frame_str, FRAME_STR_SIZE, "Frame rate: %d", frame_rate);
-          
-            int text_width  = 270;
-            int text_height = 30;
-
-            DrawRectangle(width - text_width, 0, text_width, 2 * text_height, BLUE);
-            DrawText(frame_str, width - text_width + text_height, text_height / 3, text_height, BLACK);
-            
-        EndDrawing();
+        UpdateTexture (*MandelTexture, Pixels_buf);
+        MandelDraw    (width, MandelTexture, frame_rate);
     }
 
-    UnloadImage(MandelImg);
-    UnloadTexture(MandelTexture);
-    free(Pixels_buf);
+    return Success_end;
+}
 
-    CloseWindow();
 
-    return 0;   
+int MandelDraw(int width, Texture2D* MandelTexture, int frame_rate)
+{
+    const int frame_str_size = 15;
+    char frame_str[frame_str_size] = {0};
+
+    BeginDrawing();
+
+    ClearBackground (WHITE);
+    DrawTexture     (*MandelTexture, 0, 0, WHITE);
+
+    snprintf(frame_str, frame_str_size, "Frame rate: %d", frame_rate);
+    
+    int text_width  = 270;
+    int text_height = 30;
+
+    DrawRectangle (width - text_width,  0,  text_width,  2 * text_height,  BLUE);
+    DrawText      (frame_str,  width - text_width + text_height,  text_height / 3,  text_height,  BLACK);
+    
+    EndDrawing();
+
+    return Success_end;
 }
