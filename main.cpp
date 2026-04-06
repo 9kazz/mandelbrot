@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "raylib.h"
 
@@ -13,7 +14,7 @@ int main()
     const float dx = xmax / width;
     const float dy = ymax / height;
 
-    const int Nmax    = 255;
+    const int   Nmax  = 255;
     const float R2max = 2*2;
 
     float x0 = 0;
@@ -26,46 +27,50 @@ int main()
 
     Image MandelImg = GenImageColor(width, height, WHITE);
 
-    for (yPix = 0, y0 = -ymax/2;  yPix < height;  yPix++, y0 += dy)
-    {
-        for (xPix = 0, x0 = -xmax/2;  xPix < width;  xPix++, x0 += dx)
-        {
-            float x = 0;
-            float y = 0;        
-
-            for (int N = 0; N <= Nmax; N++)
-            {
-                float y2 = y*y;
-                float x2 = x*x;
-                float xy = x*y;
-                float R2 = x2 + y2;
-
-                if (R2 > R2max) 
-                {
-                    ImageDrawPixel(&MandelImg, xPix, yPix, BLACK);
-                    break;
-                }
-                
-                x = x2 - y2 + x0;
-                y = 2*xy + y0;
-            }
-        }
-    }
-
     Texture2D MandelTexture = LoadTextureFromImage(MandelImg);
-    
-    UnloadImage(MandelImg);
+
+    Color* Pixels_buf = (Color*) calloc(width * height, sizeof(Color));
 
     while (!WindowShouldClose()) 
     {
+        for (yPix = 0, y0 = -ymax/2;  yPix < height;  yPix++, y0 += dy)
+        {
+            for (xPix = 0, x0 = -xmax/2;  xPix < width;  xPix++, x0 += dx)
+            {
+                float x = 0;
+                float y = 0;        
+
+                for (int N = 0; N <= Nmax; N++)
+                {
+                    float y2 = y*y;
+                    float x2 = x*x;
+                    float xy = x*y;
+                    float R2 = x2 + y2;
+
+                    if (R2 > R2max) 
+                    {
+                        Pixels_buf[yPix * width + xPix] = BLACK;
+                        break;
+                    }
+                
+                    x = x2 - y2 + x0;
+                    y = 2*xy + y0;
+                }
+            }
+        }
+
+        UpdateTexture(MandelTexture, Pixels_buf);
+        
         BeginDrawing();
-
-        DrawTexture(MandelTexture, 0, 0, BLACK);
-
+            ClearBackground(WHITE);
+            DrawTexture(MandelTexture, 0, 0, WHITE);
         EndDrawing();
     }
 
+    UnloadImage(MandelImg);
     UnloadTexture(MandelTexture);
+    free(Pixels_buf);
+
     CloseWindow();
 
     return 0;   
