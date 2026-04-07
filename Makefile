@@ -10,7 +10,7 @@ dbg: $(TARGET)
 
 prog: main.cpp
 	@echo ----------------------------------------------------------------------------------
-	g++ -O3 $(FLAGS) -lraylib  main.cpp -o prog
+	g++ -O3 -msse4.1 -mavx $(FLAGS) -lraylib  main.cpp -o prog
 	@echo ----------------------------------------------------------------------------------
 
 clean:
