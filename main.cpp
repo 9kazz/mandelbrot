@@ -7,7 +7,10 @@
 
 #include "raylib.h"
 
-#define SIMD_GROUP  4
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+#define SIMD_GROUP  8
 
 enum EndStatus 
 {
@@ -20,8 +23,8 @@ int MandelCalculate (int width, int height, Color* Pixels_buf, Texture2D* Mandel
 
 int main()
 {
-    const int width  = 800;
-    const int height = 800;
+    const int width  = 1200;
+    const int height =  800;
     
     InitWindow(width, height, "The Mandelbrot Set");
 
@@ -51,8 +54,8 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
     float x0ref = -xMax / 2;
     float y0ref = -yMax / 2;
 
-    const float xZoom  = xMaxRef / 20;
-    const float yZoom  = yMaxRef / 20;
+    const float xZoom  = xMaxRef / 30;
+    const float yZoom  = yMaxRef / 30;
     const float xShift = xMaxRef / 100;
     const float yShift = yMaxRef / 100;
 
@@ -61,8 +64,9 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
         if(IsKeyDown(KEY_P))  { xMax -= xZoom;  yMax -= yZoom;  x0ref += xZoom / 2;  y0ref += yZoom / 2; }
         if(IsKeyDown(KEY_M))  { xMax += xZoom;  yMax += yZoom;  x0ref -= xZoom / 2;  y0ref -= yZoom / 2; }
 
-        const float dx = xMax / width;
-        const float dy = yMax / height;
+        int screen_size = MIN(width, height);
+        const float dx  = xMax / screen_size;
+        const float dy  = yMax / screen_size;
             
         if(IsKeyDown(KEY_LEFT))   x0ref -= xShift;
         if(IsKeyDown(KEY_RIGHT))  x0ref += xShift;
@@ -77,52 +81,52 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
         double time_start = GetTime();
 
-        __m128 DotShift = _mm_set_ps (0.0, 1.0, 2.0, 3.0);
-        __m128 DotInc   = _mm_set1_ps(1.0);
-        __m128 ScaleX   = _mm_set1_ps(dx);
-        __m128 R2max    = _mm_set1_ps(4.0);
-        __m128 Nmax     = _mm_set1_ps(255);
-        __m128 Zero     = _mm_set1_ps(0.0);
+        __m256 DotShift = _mm256_set_ps (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
+        __m256 DotInc   = _mm256_set1_ps(1.0);
+        __m256 ScaleX   = _mm256_set1_ps(dx);
+        __m256 R2max    = _mm256_set1_ps(4.0);
+        __m256 Nmax     = _mm256_set1_ps(255);
+        __m256 Zero     = _mm256_set1_ps(0.0);
 
         for (yPix = 0;  yPix < height;  yPix++, y0 += dy)
         {
-            __m128 Y0 = _mm_set_ps( y0, y0,  y0,  y0);
+            __m256 Y0 = _mm256_set1_ps(y0);
 
             for (xPix = 0, x0 = x0ref;  xPix < width;  xPix += SIMD_GROUP, x0 += SIMD_GROUP * dx)
             {                   
-                __m128 X0   = _mm_set1_ps(x0);
+                __m256 X0   = _mm256_set1_ps(x0);
 
-                __m128 X    = _mm_set1_ps(0.0);
-                __m128 Y    = _mm_set1_ps(0.0);
+                __m256 X    = _mm256_set1_ps(0.0);
+                __m256 Y    = _mm256_set1_ps(0.0);
   
-                __m128 N    = _mm_set1_ps(0.0);
-                __m128 Nres = _mm_set1_ps(0.0);
+                __m256 N    = _mm256_set1_ps(0.0);
+                __m256 Nres = _mm256_set1_ps(0.0);
 
                 for (int IsDotLeft = 0; ! IsDotLeft; )
                 {
-                    __m128 X2 = _mm_mul_ps(X,  X);
-                    __m128 Y2 = _mm_mul_ps(Y,  Y);
-                    __m128 XY = _mm_mul_ps(X,  Y);
-                    __m128 R2 = _mm_add_ps(X2, Y2);
+                    __m256 X2 = _mm256_mul_ps(X,  X);
+                    __m256 Y2 = _mm256_mul_ps(Y,  Y);
+                    __m256 XY = _mm256_mul_ps(X,  Y);
+                    __m256 R2 = _mm256_add_ps(X2, Y2);
 
-                    __m128 CmpMask1    = _mm_cmp_ps   (R2, R2max, _CMP_GT_OS);
-                    __m128 CmpMask2    = _mm_cmpeq_ps (Nres, Zero);
-                           CmpMask1    = _mm_and_ps   (CmpMask1, CmpMask2);
+                    __m256 CmpMask1 = _mm256_cmp_ps (R2, R2max, _CMP_GT_OS);
+                    __m256 CmpMask2 = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
+                           CmpMask1 = _mm256_and_ps (CmpMask1, CmpMask2);
 
-                    Nres = _mm_or_ps( Nres, _mm_and_ps(N, CmpMask1) );             
+                    Nres = _mm256_or_ps( Nres, _mm256_and_ps(N, CmpMask1) );             
 
-                    X = _mm_add_ps( _mm_sub_ps(X2, Y2), _mm_add_ps(X0, _mm_mul_ps(DotShift, ScaleX)) );
-                    Y = _mm_add_ps( _mm_add_ps(XY, XY), Y0 );
+                    X = _mm256_add_ps( _mm256_sub_ps(X2, Y2), _mm256_add_ps(X0, _mm256_mul_ps(DotShift, ScaleX)) );
+                    Y = _mm256_add_ps( _mm256_add_ps(XY, XY), Y0 );
 
-                    N = _mm_add_ps(N, DotInc);
+                    N = _mm256_add_ps(N, DotInc);
 
-                    CmpMask1  = _mm_cmp_ps   (N, Nmax, _CMP_GE_OS);
-                    CmpMask2  = _mm_cmpeq_ps (Nres, Zero);
-                    CmpMask1  = _mm_and_ps   (CmpMask1, CmpMask2);                    
-                    Nres      = _mm_or_ps( Nres, _mm_and_ps(N, CmpMask1) );
+                    CmpMask1  = _mm256_cmp_ps (N, Nmax, _CMP_GE_OS);
+                    CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
+                    CmpMask1  = _mm256_and_ps (CmpMask1, CmpMask2);                    
+                    Nres      = _mm256_or_ps  (Nres, _mm256_and_ps(N, CmpMask1));
  
-                    CmpMask2  = _mm_cmpneq_ps(Nres, Zero);
-                    IsDotLeft = _mm_test_all_ones(_mm_castps_si128(CmpMask2));
+                    CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
+                    IsDotLeft = _mm256_testz_ps(CmpMask2, CmpMask2);
                 }
 
                 for (int data_cnt = 0;  data_cnt < SIMD_GROUP;  data_cnt++) 

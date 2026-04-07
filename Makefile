@@ -1,7 +1,7 @@
 FLAGS =
 TARGET = prog
 
-.PHONY: all dbg clean
+.PHONY: all dbg asm clean
 
 all: $(TARGET)
 
@@ -10,8 +10,16 @@ dbg: $(TARGET)
 
 prog: main.cpp
 	@echo ----------------------------------------------------------------------------------
-	g++ -O3 -msse4.1 -mavx $(FLAGS) -lraylib  main.cpp -o prog
+	g++ -O3 -mavx $(FLAGS) -lraylib  main.cpp -o $(TARGET)
 	@echo ----------------------------------------------------------------------------------
+
+asm: $(TARGET).s
+
+$(TARGET).s:
+	@echo ----------------------------------------------------------------------------------
+	g++ -O3 -mavx $(FLAGS) -lraylib  main.cpp -o $(TARGET).s
+	@echo ----------------------------------------------------------------------------------
+
 
 clean:
 	rm -f *.o prog
