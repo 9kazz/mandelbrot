@@ -24,7 +24,7 @@ int MandelCalculate (int width, int height, Color* Pixels_buf, Texture2D* Mandel
 int main()
 {
     const int width  = 1200;
-    const int height =  800;
+    const int height = 1200;
     
     InitWindow(width, height, "The Mandelbrot Set");
 
@@ -54,8 +54,8 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
     float x0ref = -xMax / 2;
     float y0ref = -yMax / 2;
 
-    const float xZoom  = xMaxRef / 30;
-    const float yZoom  = yMaxRef / 30;
+    const float xZoom  = xMaxRef / 40;
+    const float yZoom  = yMaxRef / 40;
     const float xShift = xMaxRef / 100;
     const float yShift = yMaxRef / 100;
 
@@ -102,6 +102,8 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                 __m256 N    = _mm256_set1_ps(0.0);
                 __m256 Nres = _mm256_set1_ps(0.0);
 
+                __m256 R2res = _mm256_set1_ps(0.0);
+
                 for (int IsDotLeft = 0; ! IsDotLeft; )
                 {
                     __m256 X2 = _mm256_mul_ps(X,  X);
@@ -114,6 +116,7 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                            CmpMask1 = _mm256_and_ps (CmpMask1, CmpMask2);
 
                     Nres = _mm256_or_ps( Nres, _mm256_and_ps(N, CmpMask1) );             
+                    R2res = _mm256_or_ps( R2res, _mm256_and_ps(R2, CmpMask1) );  
 
                     X = _mm256_add_ps( _mm256_sub_ps(X2, Y2), _mm256_add_ps(X0, _mm256_mul_ps(DotShift, ScaleX)) );
                     Y = _mm256_add_ps( _mm256_add_ps(XY, XY), Y0 );
@@ -124,6 +127,7 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                     CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
                     CmpMask1  = _mm256_and_ps (CmpMask1, CmpMask2);                    
                     Nres      = _mm256_or_ps  (Nres, _mm256_and_ps(N, CmpMask1));
+                    R2res = _mm256_or_ps( R2res, _mm256_and_ps(R2, CmpMask1) );  
  
                     CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
                     IsDotLeft = _mm256_testz_ps(CmpMask2, CmpMask2);
@@ -131,8 +135,9 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
                 for (int data_cnt = 0;  data_cnt < SIMD_GROUP;  data_cnt++) 
                 {
-                    int Nval = (int) Nres[data_cnt];
-                    Pixels_buf[yPix * width + xPix + data_cnt] = {Nval, Nval, Nval, 255};
+                    int Rval = (int) R2res[data_cnt] * 10;
+                    
+                    Pixels_buf[yPix * width + xPix + data_cnt] = {0, 0, Rval, 255};
                 }
             }
         }
