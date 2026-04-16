@@ -81,7 +81,7 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
         double time_start = GetTime();
 
-        __m256 DotShift = _mm256_set_ps (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
+        __m256 DotShift = _mm256_set_ps (7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0);
         __m256 DotInc   = _mm256_set1_ps(1.0);
         __m256 ScaleX   = _mm256_set1_ps(dx);
         __m256 R2max    = _mm256_set1_ps(4.0);
@@ -94,7 +94,8 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
             for (xPix = 0, x0 = x0ref;  xPix < width;  xPix += SIMD_GROUP, x0 += SIMD_GROUP * dx)
             {                   
-                __m256 X0   = _mm256_set1_ps(x0);
+                __m256 X0     = _mm256_set1_ps(x0);
+                __m256 X0shft = _mm256_add_ps( X0, _mm256_mul_ps(DotShift, ScaleX) );
 
                 __m256 X    = _mm256_set1_ps(0.0);
                 __m256 Y    = _mm256_set1_ps(0.0);
@@ -115,10 +116,10 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                     __m256 CmpMask2 = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
                            CmpMask1 = _mm256_and_ps (CmpMask1, CmpMask2);
 
-                    Nres = _mm256_or_ps( Nres, _mm256_and_ps(N, CmpMask1) );             
+                    Nres  = _mm256_or_ps( Nres,  _mm256_and_ps(N, CmpMask1) );             
                     R2res = _mm256_or_ps( R2res, _mm256_and_ps(R2, CmpMask1) );  
 
-                    X = _mm256_add_ps( _mm256_sub_ps(X2, Y2), _mm256_add_ps(X0, _mm256_mul_ps(DotShift, ScaleX)) );
+                    X = _mm256_add_ps( _mm256_sub_ps(X2, Y2), X0shft );
                     Y = _mm256_add_ps( _mm256_add_ps(XY, XY), Y0 );
 
                     N = _mm256_add_ps(N, DotInc);
@@ -127,7 +128,7 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
                     CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
                     CmpMask1  = _mm256_and_ps (CmpMask1, CmpMask2);                    
                     Nres      = _mm256_or_ps  (Nres, _mm256_and_ps(N, CmpMask1));
-                    R2res = _mm256_or_ps( R2res, _mm256_and_ps(R2, CmpMask1) );  
+                    R2res     = _mm256_or_ps( R2res, _mm256_and_ps(R2, CmpMask1) );  
  
                     CmpMask2  = _mm256_cmp_ps (Nres, Zero, _CMP_EQ_OS);
                     IsDotLeft = _mm256_testz_ps(CmpMask2, CmpMask2);
@@ -135,9 +136,11 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
 
                 for (int data_cnt = 0;  data_cnt < SIMD_GROUP;  data_cnt++) 
                 {
-                    int Rval = (int) R2res[data_cnt] * 10;
-                    
+                    int Rval = (int) R2res[data_cnt] * 15;
                     Pixels_buf[yPix * width + xPix + data_cnt] = {0, 0, Rval, 255};
+
+                    // int Nval = (int) Nres[data_cnt] * 4;
+                    // Pixels_buf[yPix * width + xPix + data_cnt] = {Nval, Nval, Nval, 255};
                 }
             }
         }

@@ -11,8 +11,8 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-#define SIMD_GROUP   4
-#define MAX_ITER     3
+#define SIMD_GROUP   8
+#define MAX_ITER     5
 
 enum EndStatus 
 {
@@ -52,7 +52,7 @@ float Y[SIMD_GROUP] = {0};
 float X[SIMD_GROUP] = {0};
 
 int    N[SIMD_GROUP] = {0};     
-int Nres[SIMD_GROUP] = {0, 0, 0, 0};
+int Nres[SIMD_GROUP] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 float Y2[SIMD_GROUP] = {0};  
 float X2[SIMD_GROUP] = {0};  
@@ -64,11 +64,11 @@ int main()
     int max_test_cnt = 5;
 
     #ifdef O3
-    FILE* data_base  = fopen("data/unroll4_O3.csv", "w");
+    FILE* data_base  = fopen("data/unroll8_O3.csv", "w");
     #elif O2
-    FILE* data_base  = fopen("data/unroll4_O2.csv", "w");
+    FILE* data_base  = fopen("data/unroll8_O2.csv", "w");
     #else
-    FILE* data_base  = fopen("data/unroll4_O0.csv", "w");
+    FILE* data_base  = fopen("data/unroll8_O0.csv", "w");
 
     #endif
 
@@ -122,7 +122,7 @@ int MandelCalculate(int width, int height, FILE* data_base)
                 XY[SIMD_GROUP] = {0};  
                 R2[SIMD_GROUP] = {0};  
                 
-                for (int DotEscapeMask = 0; DotEscapeMask != 0b1111; )
+                for (int DotEscapeMask = 0; DotEscapeMask != 0b11111111; )
                 {
                     for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { Y2[data_cnt] =  Y[data_cnt] *  Y[data_cnt]; }
                     for (int data_cnt = 0; data_cnt < SIMD_GROUP; data_cnt++)  { X2[data_cnt] =  X[data_cnt] *  X[data_cnt]; }
@@ -159,7 +159,6 @@ int MandelCalculate(int width, int height, FILE* data_base)
         dummy += Y[i] + X[i] + Nres[i];
     }
     fprintf(stderr, "%f\n", dummy); // или в data_base, но лучше отдельно
-
 
     return Success_end;
 }
