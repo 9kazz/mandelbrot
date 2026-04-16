@@ -88,10 +88,12 @@ int MandelCalculate(int width, int height, Color* Pixels_buf, Texture2D* MandelT
         __m256 Nmax     = _mm256_set1_ps(255);
         __m256 Zero     = _mm256_set1_ps(0.0);
 
-        for (yPix = 0;  yPix < height;  yPix++, y0 += dy)
+        #pragma omp parallel for
+        for (yPix = 0;  yPix < height;  yPix++)
         {
+            y0 = y0ref + yPix * dy;
             __m256 Y0 = _mm256_set1_ps(y0);
-
+            
             for (xPix = 0, x0 = x0ref;  xPix < width;  xPix += SIMD_GROUP, x0 += SIMD_GROUP * dx)
             {                   
                 __m256 X0     = _mm256_set1_ps(x0);

@@ -10,7 +10,7 @@ dbg: $(TARGET)
 
 prog: main.cpp
 	@echo ----------------------------------------------------------------------------------
-	g++ -O3 -mavx2 -march=native $(FLAGS) -lraylib  main.cpp -o $(TARGET)
+	g++ -O3 -fopenmp -mavx2 -march=native $(FLAGS) -lraylib  main.cpp -o $(TARGET)
 	@echo ----------------------------------------------------------------------------------
 
 asm: $(TARGET).s
